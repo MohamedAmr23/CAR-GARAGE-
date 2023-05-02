@@ -1,0 +1,75 @@
+/*module counter(clk,count,reset);
+  input clk,reset;
+  output reg[2:0] count=0;
+  always @(posedge clk or posedge reset)
+  if(reset)
+    count<=0;
+  else
+  count <=count+1;
+endmodule
+
+module counter_g();
+  wire clk;
+  reg reset;
+ wire[2:0] count;
+ initial
+ begin
+ reset=1;  #50
+ reset=0;
+ end
+ counter g(clk,count,reset);
+ endmodule*/
+ module counter(clk,reset,D);
+   input clk,reset;
+   output[49:0]D;
+   parameter s0=2? b00,
+            s1=2? b01,
+            s2=2? b10,
+            s3=2? b11;
+            reg[1:0] state;
+            always @(posedge clk or posedge reset)
+            begin
+              if(reset)
+                begin
+                  state=s0;
+                  D<=10? 0000_0000_01;
+                end
+              else
+                begin
+                  case(state)
+                    s0:state<=s1;
+                    s1:if(D<1000_0000_00)
+                    D<=D<<1;
+                  else
+                    state<=s2;
+                    s2:if(D<10b0000_0000_01)
+                    D<=D>>1;
+                  else
+                    state<=s1;
+                  endcase
+                end
+            end
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 

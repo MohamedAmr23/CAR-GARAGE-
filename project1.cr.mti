@@ -1,0 +1,6 @@
+E:/vrilog/project1.v {0 {vlog -work work E:/vrilog/project1.v
+Model Technology ModelSim ALTERA vlog 10.1b Compiler 2012.04 Apr 27 2012
+-- Compiling module car_garag
+** Error: E:/vrilog/project1.v(123): near "Module2": syntax error, unexpected IDENTIFIER, expecting class
+
+} {4.0 5.0} {}}

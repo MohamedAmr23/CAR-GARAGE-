@@ -1,0 +1,271 @@
+module up_counter(
+  //input clk,
+  input reset,
+  input enable,
+  input car_in,
+  input car_out,
+  output reg [5:0] count
+);
+
+always @ (posedge car_in or posedge car_out or  posedge reset) begin
+  if (reset == 1) begin
+    count <= 0;
+  end else if (enable == 1) begin  // not full (count < 50)
+    if (car_in == 1 && count < 50) begin
+      count <= count + 1;
+    end else if (car_out == 1 && count > 0) begin
+      count <= count - 1;
+    end
+  end
+end
+
+endmodule
+
+//////////////////////////////////////////////////////////////////////////////
+module car_garage_FSM(
+ // input clk,
+  input reset,
+  input button,
+  input car_in,
+  input car_out,
+  output reg [5:0] count
+  
+);
+
+  
+  parameter Empty   = 2'b00;    // S0
+  parameter Car_input  = 2'b01; // S1
+  parameter Car_output = 2'b10; // S2
+  parameter Full    = 2'b11;    // S3
+  
+  reg [1:0] State;
+  
+  //up_counter counter(.reset(reset), .enable(car_in && !full), .count(count));
+  always @ (posedge car_in or posedge car_out or  posedge reset)
+  begin
+    if(reset == 1)
+      begin
+        
+      State <= Empty;   // S0
+      count <= 0;
+    
+      end
+  end
+  
+  always @( posedge car_in or posedge car_out)
+  
+  case(State)
+    
+    // Case 0...........
+    Empty:   // S0
+     begin
+       if(  car_in == 1 && count == 0)
+         begin
+           count <= count + 1;
+           State <= Car_input; // S1
+        
+         end
+       else
+         State <= Empty;  // S0
+      
+     end
+     
+     // Case 1.......
+     
+     Car_input:  // S1
+      begin
+        if( count > 0 && count < 50 && car_in == 1) // garage is not full
+          begin
+            count <= count + 1;
+            State <= Car_input;  // S1
+          end 
+          
+        else if( car_in == 1 && count == 50)
+          begin
+            $display("The garage is full");
+            State <= Full;  // S3
+          end
+          
+        else
+          begin
+            if( count > 0 && count < 50 && car_out == 1)
+              begin
+                count <= count - 1;
+                State <= Car_output;   // S2
+                
+              end
+          end
+      end
+      
+      // Case 2...............
+      Car_output:   // S2
+        begin
+          if( count < 50 && car_in == 1)
+            begin
+              count <= count + 1;
+              State <= Car_input;
+              
+            end
+            
+           else if( count > 0 && count < 50 && car_out == 1)
+             begin
+              count <= count - 1;
+              State <= Car_output;  // S2
+              
+             end
+            
+           else
+             begin
+              if( count == 0 && car_out == 1)
+                begin
+                  $display("The garage is Empty");
+                  State <= Empty;   // S0
+                  
+                end
+            end
+        end
+      
+      // Case 3...........
+      
+      Full:   // S3
+      begin
+        if( count == 50 && car_in == 1)
+          begin
+            $display("The garage is full");
+            State <= Full;  // S3
+          end
+          
+        else
+          begin
+            if( count == 50 && car_out == 1)
+              begin
+                count <= count - 1;
+                State <= Car_output;
+                
+              end
+          end
+        
+      end
+    
+    endcase
+      
+    
+endmodule
+
+///////////////////////////////////////////////////////////////////////////////////////////////
+// Mixed Module
+
+module car_garage(
+  input reset,
+  input button,
+  input car_in,
+  input car_out,
+  output  [5:0] count,output [6:0] leds1,leds2
+);
+
+ //wire clk = $time % 10 == 0;
+
+
+  car_garage_FSM fsm(
+    .reset(reset),
+    .button(button),
+    .car_in(car_in),
+    .car_out(car_out),
+    .count(count)
+  );
+     wire [3:0]digit1=count %10;
+wire [3:0]digit2=count /10;
+
+
+BCD7Seg seg1(digit1[3],digit1[2],digit1[1],digit1[0],
+leds1[6],leds1[5],leds1[4],leds1[3],leds1[2],leds1[1],leds1[0]);
+
+BCD7Seg seg2(digit2[3],digit2[2],digit2[1],digit2[0],
+leds2[6],leds2[5],leds2[4],leds2[3],leds2[2],leds2[1],leds2[0]);
+          
+endmodule
+
+////////////////////////////////////////////////////////////////////////////////////////
+
+
+//`timescale 1ns/1ns
+
+
+module DUT();
+  reg car_in,car_out,reset,button;
+  wire [5:0] count;
+  wire [6:0] leds1,leds2;
+  
+  
+ car_garage c(
+   reset,
+   button,
+   car_in,
+  car_out,
+  count,  leds1,leds2);
+  
+  initial
+  begin
+    car_in=1'b0;
+    car_out=1'b0;
+    reset=1; #50;
+    reset=0;
+    button =1;
+    end
+    
+  always begin
+   
+    car_in=1; car_out=0; #50;
+    car_in=0; car_out=0; #1;
+    car_in=1; car_out=0; #50;
+    car_in=0; car_out=0; #1;
+    car_in=1; car_out=0; #50;
+    car_in=0; car_out=0; #1;
+    car_in=1; car_out=0; #50;
+    car_in=0; car_out=0; #1;
+    car_in=1; car_out=0; #50;
+    car_in=0; car_out=0; #1;
+
+   
+   /*
+    //////////////////////////////
+      car_in=1; car_out=0; #50;
+    car_in=0; car_out=0; #1;
+    car_in=1; car_out=0; #50;
+    car_in=0; car_out=0; #1;
+    car_in=1; car_out=0; #50;
+    car_in=0; car_out=0; #1;
+    car_in=1; car_out=0; #50;
+    car_in=0; car_out=0; #1;
+    car_in=1; car_out=0; #50;
+    car_in=0; car_out=0; #1;
+    
+       car_in=0; car_out=1; #50;
+    car_in=0; car_out=0; #1;
+    car_in=0; car_out=1; #50;
+    car_in=0; car_out=0; #1;
+    car_in=0; car_out=1; #50;
+    car_in=0; car_out=0; #1;
+    car_in=0; car_out=1; #50;
+    car_in=0; car_out=0; #1;
+    car_in=0; car_out=1; #50;
+    car_in=0; car_out=0; #1; 
+    */
+    end
+endmodule
+//////////////////////////////////////////////////////////////////////////////////////////////
+
+module BCD7Seg(A,B,C,D, led_a, led_b, led_c, led_d, led_e, led_f, led_g);
+  input A,B,C,D;
+  output led_a, led_b, led_c, led_d, led_e, led_f, led_g;
+  
+  assign led_a = (A | C | B&D | ~B&~D);
+  assign led_b = (~B | ~C&~D | C&D);
+  assign led_c = (B | ~C | D);
+  assign led_d = (~B&~D | C &~D | B&~C&D | ~B&C | A);
+  assign led_e = (~B&~D | C&~D);
+  assign led_f = (A | ~C&~D | B&~C | B&~D);
+  assign led_g = (A | B&~C | ~B&C | C&~D);  
+  
+endmodule
+
